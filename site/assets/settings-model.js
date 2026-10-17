@@ -1,0 +1,1 @@
+globalThis.SettingsModel={"version":"Unified Foundation V2","device":"LAPTOP-IRX-10","parameters":[{"label":"表征维度","value":256,"key":"representation_dim"},{"label":"测井维度","value":128,"key":"well_hidden_dim"},{"label":"曲线通道","value":9,"key":"well_curve_count"}],"source":"configs/unified_foundation_v2.yaml"};

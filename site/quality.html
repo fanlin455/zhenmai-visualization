@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="震脉智绘 · 地层剖析">
+  <title>地层剖析 · 震脉智绘</title>
+  <link rel="stylesheet" href="styles.css?v=visual-palette-1">
+  <link rel="stylesheet" href="page-transitions.css?v=curtain-1">
+  <script src="page-transitions.js?v=curtain-1"></script>
+  <script src="narrative-single-screen.js?v=1" defer></script>
+  <script src="assets/f3-geology-data.js" defer></script>
+  <script src="assets/story-analysis-data.js?v=visual-palette-1" defer></script>
+  <script type="module" src="story-geology-three.js?v=renderer-parity-7"></script>
+  <script src="story-linked-analysis.js?v=visual-palette-1" defer></script>
+  <script src="assets/settings-model.js" defer></script><script src="settings.js" defer></script>
+</head>
+<body class="narrative-page strata-page">
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+  <header class="site-header">
+    <a class="brand" href="index.html">震脉智绘</a>
+    <nav aria-label="主要目录">
+      <a href="index.html"><span>全局概览</span></a>
+      <a href="input.html"><span>数据接入</span></a>
+      <a href="data.html"><span>区域全景</span></a>
+      <a href="quality.html" aria-current="page"><span>地层剖析</span></a>
+      <a href="alignment.html"><span>井震联析</span></a>
+      <a href="inference.html"><span>构造追踪</span></a>
+      <a href="results.html"><span>储层洞察</span></a>
+    </nav>
+  </header>
+  <div class="narrative-content-viewport" data-narrative-viewport>
+  <div class="narrative-screen-canvas" data-narrative-screen>
+  <div class="workspace">
+    <main id="main-content" class="story-main" tabindex="-1">
+      <header class="story-heading">
+        <div><h1>多层位构型与地层展布解析</h1></div>
+        <b>地层剖析</b>
+      </header>
+      <section id="analysis-console" class="analysis-console" data-analysis="strata" aria-label="层位与厚度联动分析台"></section>
+      <div class="story-grid story-orbit-grid strata-story-grid">
+        <figure class="story-panel story-hero-3d story-chart-6 orbit-main">
+          <div class="story-panel-heading"><div><b>01</b><h2>公开 F3 四层位三维分层栈</h2></div><span>H1 · H2 · D0 · H3</span></div>
+          <div class="story-interactive-3d"><canvas class="story-geology-canvas" data-scene="strata" tabindex="0" role="img" aria-label="自动旋转、可拖拽缩放的公开 F3 四层分离层面"></canvas><span class="story-3d-hint">自动旋转 · 拖拽接管 · 滚轮缩放</span><button class="story-3d-reset" type="button">复位</button></div>
+          
+        </figure>
+        <figure class="story-panel story-wide-panel story-chart-6 orbit-side orbit-left-top">
+          <div class="story-panel-heading"><div><b>02</b><h2>地层展布剖面</h2></div><span>6 UNITS · 5 HORIZONS</span></div>
+          <img class="story-image cover" src="assets/data-stratigraphic-architecture.png?v=visual-palette-1" alt="六套地层、五条层界和三口井的地下展布剖面">
+          
+        </figure>
+        <section class="story-panel story-chart-3 orbit-side orbit-left-bottom">
+          <div class="story-panel-heading"><div><b>03</b><h2>层间厚度</h2></div><span>MEAN TWT</span></div>
+          <table class="story-table"><thead><tr><th>层间</th><th>平均厚度</th><th>空间特征</th></tr></thead><tbody>
+            <tr><td>H1—H2</td><td>93.5 ms</td><td>西缓东稳</td></tr>
+            <tr><td>H2—H3</td><td>97.5 ms</td><td>中部轻微增厚</td></tr>
+            <tr><td>H3—H4</td><td>103.6 ms</td><td>断裂两侧错接</td></tr>
+            <tr><td>H4—H5</td><td>109.8 ms</td><td>向东逐步增厚</td></tr>
+          </tbody></table>
+        </section>
+        <figure class="story-panel story-chart-3 story-compact-chart orbit-side orbit-right-top">
+          <div class="story-panel-heading"><div><b>04</b><h2>层间厚度热力图</h2></div><span>THICKNESS HEATMAP</span></div>
+          <img class="story-image contain" src="assets/data-thickness-heatmap.png?v=visual-palette-1" alt="四个层间单元沿测线变化的厚度热力图">
+          
+        </figure>
+        <figure class="story-panel story-chart-3 story-compact-chart orbit-side orbit-right-bottom">
+          <div class="story-panel-heading"><div><b>05</b><h2>层位起伏曲线</h2></div><span>5 HORIZONS</span></div>
+          <img class="story-image contain" src="assets/data-horizon-profiles.png?v=visual-palette-1" alt="五条地层界面的横向时间起伏曲线">
+          
+        </figure>
+      </div>
+    </main>
+  </div>
+  </div>
+  </div>
+</body>
+</html>

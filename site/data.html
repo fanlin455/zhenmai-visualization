@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="震脉智绘 · 区域全景">
+  <title>区域全景 · 震脉智绘</title>
+  <link rel="stylesheet" href="styles.css?v=visual-palette-1">
+  <link rel="stylesheet" href="page-transitions.css?v=curtain-1">
+  <script src="page-transitions.js?v=curtain-1"></script>
+  <script src="region-single-screen.js?v=4" defer></script>
+  <script src="assets/f3-geology-data.js" defer></script>
+  <script src="assets/story-analysis-data.js?v=visual-palette-1" defer></script>
+  <script type="module" src="story-geology-three.js?v=renderer-parity-7"></script>
+  <script src="story-linked-analysis.js?v=visual-palette-1" defer></script>
+  <script src="story-professional-tools.js" defer></script>
+  <script src="assets/settings-model.js" defer></script><script src="settings.js" defer></script>
+</head>
+<body class="narrative-page region-page">
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+  <header class="site-header">
+    <a class="brand" href="index.html">震脉智绘</a>
+    <nav aria-label="主要目录">
+      <a href="index.html"><span>全局概览</span></a>
+      <a href="input.html"><span>数据接入</span></a>
+      <a href="data.html" aria-current="page"><span>区域全景</span></a>
+      <a href="quality.html"><span>地层剖析</span></a>
+      <a href="alignment.html"><span>井震联析</span></a>
+      <a href="inference.html"><span>构造追踪</span></a>
+      <a href="results.html"><span>储层洞察</span></a>
+    </nav>
+  </header>
+  <div class="region-content-viewport" data-region-viewport>
+  <div class="region-screen-canvas" data-region-screen>
+  <div class="workspace">
+    <main id="main-content" class="story-main" tabindex="-1">
+      <header class="story-heading">
+        <div><h1>区域地震与井位空间分布解析</h1></div>
+        <b>区域全景</b>
+      </header>
+      <section id="analysis-console" class="analysis-console" data-analysis="regional" aria-label="空间与剖面联动分析台"></section>
+      <div class="story-grid story-orbit-grid region-story-grid">
+        <figure class="story-panel story-hero-3d story-chart-6 orbit-main">
+          <div class="story-panel-heading"><div><b>01</b><h2>公开 F3 区域三维地质体</h2></div><span>4 HORIZONS · 4,756 SOURCE NODES</span></div>
+          <div class="story-interactive-3d"><canvas class="story-geology-canvas" data-scene="regional" tabindex="0" role="img" aria-label="自动旋转、可拖拽缩放的公开 F3 四层位三维地质体"></canvas><span class="story-3d-hint">自动旋转 · 拖拽接管 · 滚轮缩放</span><button class="story-3d-reset" type="button">复位</button></div>
+          
+        </figure>
+        <figure class="story-panel story-map-panel story-chart-3 story-compact-chart orbit-side orbit-left-top">
+          <div class="story-panel-heading"><div><b>02</b><h2>测线与井位</h2></div><span>SURVEY LOCATION</span></div>
+          <img class="story-image contain" src="assets/data-survey-location.png?v=visual-palette-1" alt="三口井沿测线分布的东向和北向投影坐标图">
+          
+        </figure>
+        <figure class="story-panel story-seismic-panel story-chart-6 orbit-side orbit-right-top">
+          <div class="story-panel-heading"><div><b>03</b><h2>区域地震全景</h2></div><span>100—738 ms</span></div>
+          <img class="story-image cover" src="assets/data-seismic-section.png?v=visual-palette-1" alt="包含三口井位置的区域地震振幅剖面">
+          
+        </figure>
+        <figure class="story-panel story-chart-3 story-compact-chart orbit-side orbit-left-bottom">
+          <div class="story-panel-heading"><div><b>04</b><h2>振幅能量分布</h2></div><span>HISTOGRAM + DENSITY</span></div>
+          <img class="story-image contain" src="assets/data-amplitude-distribution.png?v=visual-palette-1" alt="地震振幅样本直方图与平滑分布曲线">
+          
+        </figure>
+        <figure class="story-panel story-chart-6 story-compact-chart orbit-side orbit-right-bottom">
+          <div class="story-panel-heading"><div><b>05</b><h2>五层位横向起伏</h2></div><span>HORIZON PROFILES</span></div>
+          <img class="story-image contain" src="assets/data-horizon-profiles.png?v=visual-palette-1" alt="五条解释层位随道号变化的时间曲线">
+          
+        </figure>
+      </div>
+    </main>
+  </div>
+  </div>
+  </div>
+</body>
+</html>

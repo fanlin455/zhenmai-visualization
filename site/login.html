@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录 · 震脉智绘</title>
+  <meta name="description" content="震脉智绘——地震测井融合解释工作台登录入口">
+  <link rel="stylesheet" href="login.css">
+  <link rel="stylesheet" href="page-transitions.css?v=curtain-1">
+  <script src="page-transitions.js?v=curtain-1"></script>
+  <script src="login.js" defer></script>
+</head>
+<body>
+  <canvas id="login-motion" aria-hidden="true"></canvas>
+  <div class="login-art" aria-hidden="true">
+    <img src="assets/login-seismic-background-v2.png" alt="">
+    <span class="art-scan"></span>
+  </div>
+  <div class="ambient-grid" aria-hidden="true"></div>
+  <div class="scan-beam" aria-hidden="true"></div>
+  <main class="login-layout">
+    <section class="login-intro" aria-labelledby="login-title">
+      <div class="brand-lockup">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>震脉智绘</span>
+      </div>
+      <p class="eyebrow"><span></span> SEISMIC × WELL INTELLIGENCE</p>
+      <h1 id="login-title">让地震剖面与测井曲线<br><em>在同一深度相遇</em></h1>
+      <p class="intro-copy">多源地学数据融合、物理对齐与智能解释工作台</p>
+      <ul class="feature-list" aria-label="平台能力">
+        <li><b>01</b><span>数据输入</span></li>
+        <li><b>02</b><span>物理对齐</span></li>
+        <li><b>03</b><span>成果解释</span></li>
+      </ul>
+      <div class="depth-readout" aria-hidden="true">
+        <span>INLINE 1280</span><span>XLINE 2460</span><span>DEPTH 2.84 KM</span>
+      </div>
+    </section>
+    <section class="login-panel" aria-labelledby="panel-title">
+      <div class="panel-status"><span></span> LOCAL MODEL ONLINE</div>
+      <div class="panel-heading">
+        <p>WELCOME BACK</p>
+        <h2 id="panel-title">登录工作台</h2>
+        <span>使用本地账户继续访问</span>
+      </div>
+      <form id="login-form" class="login-form" method="post" action="/api/login">
+        <div class="login-field">
+          <label for="login-account">账号</label>
+          <input id="login-account" name="username" type="text" placeholder="请输入账号" autocomplete="username" maxlength="128" required spellcheck="false" autocapitalize="none">
+          <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20v-2a7.5 7.5 0 0 1 15 0v2"/></svg>
+        </div>
+        <div class="login-field">
+          <label for="login-password">密码</label>
+          <input id="login-password" name="password" type="password" placeholder="请输入密码" autocomplete="current-password" maxlength="128" required>
+          <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>
+        </div>
+        <button id="login-button" type="submit"><span>进入工作台</span><b aria-hidden="true">↗</b></button>
+        <p id="login-status" class="login-status" role="status" aria-live="polite"></p>
+      </form>
+      <p class="panel-footnote"><span>GeoPrompt-FM</span> · Unified Foundation V2</p>
+    </section>
+  </main>
+</body>
+</html>

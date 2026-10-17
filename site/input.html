@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="震脉智绘 · 多源地质数据接入、校验与建例">
+  <title>数据接入 · 震脉智绘</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="page-transitions.css?v=curtain-1">
+  <script src="page-transitions.js?v=curtain-1"></script>
+  <script src="input-session.js" defer></script>
+  <script src="file-preview.js" defer></script>
+  <script src="well-location-3d.js" defer></script>
+  <script src="data-visuals.js" defer></script>
+  <script src="data-check.js" defer></script>
+  <script src="dialog-size.js" defer></script>
+  <script src="workbench-input.js" defer></script>
+  <script src="input-workflow.js" defer></script>
+  <script src="assets/settings-model.js" defer></script>
+  <script src="settings.js" defer></script>
+</head>
+<body class="data-page input-page">
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+  <header class="site-header">
+    <a class="brand" href="index.html">震脉智绘</a>
+    <nav aria-label="主要目录">
+      <a href="index.html"><span>全局概览</span></a>
+      <a href="input.html" aria-current="page"><span>数据接入</span></a>
+      <a href="data.html"><span>区域全景</span></a>
+      <a href="quality.html"><span>地层剖析</span></a>
+      <a href="alignment.html"><span>井震联析</span></a>
+      <a href="inference.html"><span>构造追踪</span></a>
+      <a href="results.html"><span>储层洞察</span></a>
+    </nav>
+  </header>
+
+  <div class="workspace">
+    <main id="main-content" tabindex="-1">
+      <header class="input-heading">
+        <div><p>DATA INGESTION · 00</p><h1>多源地学数据接入与质量控制</h1><span>面向地震、时深、测井及井位数据，提供本地解析、结构校验与可追溯案例管理。</span></div>
+        <ol aria-label="数据接入步骤"><li><b>01</b>选择文件</li><li><b>02</b>结构校验</li><li><b>03</b>建立案例</li><li><b>04</b>物理对齐</li></ol>
+      </header>
+
+      <section class="input-trust-strip" aria-label="数据处理边界">
+        <div><b>本地优先</b><span>文件先在当前浏览器读取并预览</span></div>
+        <div><b>格式可查</b><span>解析结果与异常原因逐文件展示</span></div>
+        <div><b>服务建例</b><span>确认后上传至 127.0.0.1 本地服务</span></div>
+        <div><b>来源隔离</b><span>用户案例与内置演示数据分开标记</span></div>
+      </section>
+
+      <div class="data-layout">
+        <div class="data-upload-column">
+          <div class="data-input-grid">
+            <form id="seismic-form">
+              <fieldset>
+                <legend>地震与时间基准</legend>
+                <label for="seismic-file">地震体或地震剖面</label>
+                <div class="file-upload-control">
+                  <input class="upload-file-input" id="seismic-file" type="file" accept=".npy,.npz,.sgy,.segy,.csv,.json">
+                  <label class="file-select-button" for="seismic-file">选择地震文件</label>
+                  <ul class="file-upload-status" id="seismic-file-status" aria-live="polite"></ul>
+                </div>
+                <p class="input-format">NPY / NPZ / SEG-Y / CSV / JSON · 单文件不超过 128 MB</p>
+
+                <label for="time-depth-file">时深关系</label>
+                <div class="file-upload-control">
+                  <input class="upload-file-input" id="time-depth-file" type="file" accept=".csv,.tsv,.json">
+                  <label class="file-select-button" for="time-depth-file">选择时深文件</label>
+                  <ul class="file-upload-status" id="time-depth-file-status" aria-live="polite"></ul>
+                </div>
+                <p class="input-format">需包含 depth/MD 与 time/TWT，建议同时提供井名</p>
+              </fieldset>
+            </form>
+
+            <form id="well-form">
+              <fieldset>
+                <legend>测井与空间约束</legend>
+                <label for="well-file">测井曲线（可多选）</label>
+                <div class="file-upload-control">
+                  <input class="upload-file-input" id="well-file" type="file" multiple accept=".las,.csv,.tsv,.json">
+                  <label class="file-select-button" for="well-file">添加测井文件</label>
+                  <ul class="file-upload-status" id="well-file-status" aria-live="polite"></ul>
+                </div>
+                <p class="input-format">LAS / CSV / JSON · 多井文件名或井名字段应与井位表一致</p>
+
+                <label for="well-location-file">井位与井轨迹</label>
+                <div class="file-upload-control">
+                  <input class="upload-file-input" id="well-location-file" type="file" accept=".csv,.tsv,.json">
+                  <label class="file-select-button" for="well-location-file">选择井位文件</label>
+                  <ul class="file-upload-status" id="well-location-file-status" aria-live="polite"></ul>
+                </div>
+                <p class="input-format">需包含 X/Y 或 Easting/Northing；可选 Z、深度或 trace_index</p>
+              </fieldset>
+            </form>
+          </div>
+
+          <details class="case-settings">
+            <summary>案例坐标与采样参数</summary>
+            <div class="case-settings-grid">
+              <label>时间轴<select id="case-time-axis"><option value="first">纵轴（行）</option><option value="last">横轴（列）</option></select></label>
+              <label>剖面序号<input id="case-sample-index" type="number" min="0" max="1000000" step="1" value="0"></label>
+              <label>采样间隔 ms<input id="case-sample-interval" type="number" min="0.1" max="20" step="0.1" value="2"></label>
+              <label>时间原点 ms<input id="case-time-origin" type="number" min="-100000" max="100000" step="1" value="0"></label>
+              <label>时深时间单位<select id="case-time-unit"><option value="ms">毫秒</option><option value="s">秒</option></select></label>
+              <label>标定依据<select id="case-time-source"><option value="none">未声明</option><option value="checkshot">Checkshot</option><option value="vsp">VSP</option><option value="calibrated_sonic">已标定声波</option><option value="sonic_integral">声波积分</option></select></label>
+            </div>
+          </details>
+
+          <div class="data-validation-controls">
+            <button id="validate-data" class="check-data-button" type="button" disabled>校验并预览四类数据</button>
+            <button id="create-case" class="create-case-button" type="button" disabled>接入本地服务并建立案例</button>
+            <p id="input-workflow-status" class="input-workflow-status" role="status" aria-live="polite">等待载入四类资料。</p>
+          </div>
+        </div>
+
+        <div class="input-reference-column">
+          <figure id="seismic-reference-card" class="input-reference-card">
+            <figcaption><div><h2>地震输入结构</h2><p>二维剖面或多维体的末二维切片，用于检查振幅、维度和时间轴方向。</p></div><span class="reference-badge">SEISMIC</span></figcaption>
+            <div class="reference-plot"><img src="assets/input-seismic-reference.svg?v=visual-palette-1" alt="地震矩阵输入结构参考"></div>
+          </figure>
+          <figure class="input-reference-card">
+            <figcaption><div><h2>井—时深—坐标对应</h2><p>井名是跨文件关联键；深度和双程时间必须在同井内严格递增。</p></div><span class="reference-badge">WELL CONTROL</span></figcaption>
+            <div class="reference-plot"><img src="assets/input-well-reference.svg?v=visual-palette-1" alt="测井、时深和井位文件关联结构参考"></div>
+          </figure>
+        </div>
+      </div>
+
+      <section id="active-case-panel" class="active-case-panel" hidden aria-labelledby="active-case-title">
+        <header><div><span>ACTIVE USER CASE</span><h2 id="active-case-title">用户案例已建立</h2></div><b id="active-case-gate">等待物理质量门</b></header>
+        <dl id="active-case-metrics"></dl>
+        <p id="active-case-note"></p>
+        <div class="active-case-actions"><button id="run-alignment" type="button" disabled>运行物理对齐</button><a href="alignment.html?source=uploaded">进入井震联析</a></div>
+        <div id="alignment-output-gallery" class="alignment-output-gallery" aria-live="polite"></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="data-check-dialog" aria-labelledby="data-check-title">
+    <div class="dialog-heading"><h2 id="data-check-title">输入数据结构检查</h2><button id="close-data-check" type="button" aria-label="关闭">×</button></div>
+    <p id="data-check-note">等待检查。</p>
+    <div class="preview-tabs" role="tablist" aria-label="数据预览类别">
+      <button type="button" role="tab" data-preview-tab="summary" aria-selected="true">检查概况</button>
+      <button type="button" role="tab" data-preview-tab="seismic" aria-selected="false">地震剖面</button>
+      <button type="button" role="tab" data-preview-tab="well" aria-selected="false">测井曲线</button>
+      <button type="button" role="tab" data-preview-tab="time" aria-selected="false">时深关系</button>
+      <button type="button" role="tab" data-preview-tab="location" aria-selected="false">井位分布</button>
+    </div>
+    <div id="panel-summary" class="preview-tab-panel" role="tabpanel">
+      <div class="table-scroll"><table><caption>逐文件读取与解析结果</caption><thead><tr><th>类别</th><th>文件</th><th>大小</th><th>读取</th><th>结构解析</th></tr></thead><tbody id="file-check-rows"></tbody></table></div>
+    </div>
+    <div id="panel-seismic" class="preview-tab-panel" role="tabpanel" hidden><label id="seismic-preview-picker" class="preview-picker" hidden>预览文件<select id="seismic-preview-select"></select></label><p id="seismic-preview-status" class="preview-status"></p><div id="seismic-actual-plot" class="actual-data-plot"></div></div>
+    <div id="panel-well" class="preview-tab-panel" role="tabpanel" hidden><label id="well-preview-picker" class="preview-picker" hidden>预览文件<select id="well-preview-select"></select></label><p id="well-preview-status" class="preview-status"></p><div id="well-actual-plot" class="actual-data-plot"></div></div>
+    <div id="panel-time" class="preview-tab-panel" role="tabpanel" hidden><label id="time-preview-picker" class="preview-picker" hidden>预览文件<select id="time-preview-select"></select></label><p id="time-preview-status" class="preview-status"></p><div id="time-actual-plot" class="actual-data-plot"></div></div>
+    <div id="panel-location" class="preview-tab-panel" role="tabpanel" hidden><label id="location-preview-picker" class="preview-picker" hidden>预览文件<select id="location-preview-select"></select></label><p id="location-preview-status" class="preview-status"></p><div id="location-actual-plot" class="actual-data-plot"></div></div>
+  </dialog>
+</body>
+</html>

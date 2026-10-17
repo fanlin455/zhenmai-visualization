@@ -1,0 +1,23 @@
+{
+  "input_sha256": "8f50cb3e20b07d5a9ad00c1c55c02429f2f8c172e101fd0c338572fff9213930",
+  "seismic_channel": 1,
+  "well_column_fraction": 0.16143497824668884,
+  "well_trace": 36,
+  "row_threshold_strict": 0.35,
+  "overall_threshold": 0.35,
+  "coverage_threshold": 0.25,
+  "runs": [
+    {
+      "start": 0,
+      "end_exclusive": 214,
+      "eligible": true
+    },
+    {
+      "start": 214,
+      "end_exclusive": 224,
+      "eligible": false
+    }
+  ],
+  "waveform_overlay": "seismic amplitude and cache standardized DT; NOT a synthetic seismogram",
+  "time_axis": "relative sample index; absolute time/depth and deviated trajectory are absent"
+}

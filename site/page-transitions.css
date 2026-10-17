@@ -1,0 +1,90 @@
+@view-transition { navigation: none; }
+
+/* 双幕式路由转场：旧页面先合拢，新页面加载完成后再展开。 */
+html.page-entering::before,
+html.page-entering::after,
+html.page-leaving::before,
+html.page-leaving::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: calc(50vw + 2px);
+  z-index: 2147483647;
+  pointer-events: none;
+  contain: strict;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+html.page-entering::before,
+html.page-leaving::before {
+  left: 0;
+  background:
+    radial-gradient(circle at 34% 44%, rgba(16, 109, 175, .30), transparent 52%),
+    linear-gradient(90deg, #020817 0%, #06162a 62%, #0a2942 100%);
+  box-shadow: 10px 0 28px rgba(54, 214, 255, .12);
+}
+
+html.page-entering::after,
+html.page-leaving::after {
+  right: 0;
+  background:
+    radial-gradient(circle at 66% 56%, rgba(16, 109, 175, .30), transparent 52%),
+    linear-gradient(270deg, #020817 0%, #06162a 62%, #0a2942 100%);
+  box-shadow: -10px 0 28px rgba(54, 214, 255, .12);
+}
+
+/* 新文档出现时幕布保持闭合，等 load 后再打开。 */
+html.page-entering::before,
+html.page-entering::after {
+  transform: translate3d(0, 0, 0);
+}
+
+/* 旧页面：两侧向中间合拢。 */
+html.page-leaving::before {
+  animation: curtain-close-left 180ms cubic-bezier(.62, 0, .82, .38) both;
+}
+
+html.page-leaving::after {
+  animation: curtain-close-right 180ms cubic-bezier(.62, 0, .82, .38) both;
+}
+
+/* 新页面：从中线向两侧展开。 */
+html.page-entering.page-ready::before {
+  animation: curtain-open-left 240ms cubic-bezier(.16, .78, .22, 1) both;
+}
+
+html.page-entering.page-ready::after {
+  animation: curtain-open-right 240ms cubic-bezier(.16, .78, .22, 1) both;
+}
+
+@keyframes curtain-close-left {
+  from { transform: translate3d(-101%, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes curtain-close-right {
+  from { transform: translate3d(101%, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes curtain-open-left {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-101%, 0, 0); }
+}
+
+@keyframes curtain-open-right {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(101%, 0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.page-entering::before,
+  html.page-entering::after,
+  html.page-leaving::before,
+  html.page-leaving::after {
+    display: none;
+    animation: none;
+  }
+}

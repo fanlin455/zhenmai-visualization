@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img"><title>连续区间的对齐质量门检查</title>
+<style>text{font-family:system-ui, Microsoft YaHei, sans-serif;font-size:12px;fill:#9ebbd2}.bright{fill:#d4eaf8}.small{font-size:10px}.gold{fill:#f8cf78}.cyan{fill:#58d6f5}</style>
+<defs><linearGradient id="available"><stop stop-color="#157b88" /><stop offset="1" stop-color="#3ece9d" /></linearGradient><pattern id="unavailable" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#624532" /><path d="M0 0V8" stroke="#bb8656" stroke-width="2" /></pattern></defs>
+<text x="58" y="31" class="bright" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="12" fill="#d4eaf8">可融合覆盖率</text>
+<text x="58" y="73" style="font-size:34px;fill:#69e1b3" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="34" fill="#69e1b3">95.5%</text>
+<text x="262" y="31" class="bright" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="12" fill="#d4eaf8">整体对齐置信度</text>
+<text x="262" y="73" style="font-size:34px;fill:#59d8ff" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="34" fill="#59d8ff">0.955</text>
+<text x="522" y="31" class="bright" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="12" fill="#d4eaf8">连续质量区间</text>
+<text x="522" y="73" style="font-size:34px;fill:#d4eaf8" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="34" fill="#d4eaf8">2 段</text>
+<rect x="58" y="112" width="640" height="67" rx="4" fill="#092139" stroke="#294e69" />
+<rect x="58.00" y="113" width="611.43" height="65" fill="url(#available)"><title>0至213：可融合</title></rect>
+<text x="363.71" y="151" text-anchor="middle" style="fill:#e6ffed;font-size:16px" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="16" fill="#e6ffed">可融合 · 0–213</text>
+<rect x="669.43" y="113" width="28.57" height="65" fill="url(#unavailable)"><title>214至223：不可融合</title></rect>
+<text x="58" y="202" text-anchor="middle" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="12" fill="#9ebbd2">0</text>
+<text x="218" y="202" text-anchor="middle" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="12" fill="#9ebbd2">56</text>
+<text x="378" y="202" text-anchor="middle" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="12" fill="#9ebbd2">112</text>
+<text x="538" y="202" text-anchor="middle" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="12" fill="#9ebbd2">167</text>
+<text x="698" y="202" text-anchor="middle" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="12" fill="#9ebbd2">223</text>
+<rect x="58" y="221" width="12" height="12" rx="2" fill="#30cba5" /><text x="78" y="232" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="12" fill="#9ebbd2">可融合</text>
+<rect x="169" y="221" width="12" height="12" rx="2" fill="url(#unavailable)" /><text x="189" y="232" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="12" fill="#9ebbd2">不可融合</text>
+<text x="698" y="232" text-anchor="end" class="small" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="10" fill="#9ebbd2">末尾 10 点未通过质量门</text>
+<text x="376" y="272" text-anchor="middle" font-family="system-ui, Microsoft YaHei, sans-serif" font-size="12" fill="#9ebbd2">时间区间 · 相对时间采样点</text>
+</svg>

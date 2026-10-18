@@ -51,9 +51,9 @@
       this.shell = canvas.closest('.story-interactive-3d');
       this.canvas.dataset.renderer = 'canvas-fallback';
       document.documentElement.dataset.geologyRenderer = 'canvas-fallback';
-      this.yaw = ({ regional: -0.56, strata: -0.56, welltie: -0.62, fault: -0.58, reservoir: -0.48 })[this.type];
-      this.pitch = ({ regional: -0.34, strata: -0.34, welltie: -0.18, fault: -0.28, reservoir: -0.34 })[this.type];
-      this.zoom = ({ regional: 1.28, strata: 1.42, welltie: 1.18, fault: 1.18, reservoir: 1.15 })[this.type];
+      this.yaw = ({ regional: -0.72, strata: 0.58, welltie: -0.62, fault: -0.58, reservoir: -0.48 })[this.type];
+      this.pitch = ({ regional: -0.28, strata: -0.46, welltie: -0.18, fault: -0.28, reservoir: -0.34 })[this.type];
+      this.zoom = ({ regional: 1.18, strata: 1.32, welltie: 1.18, fault: 1.18, reservoir: 1.15 })[this.type];
       this.auto = true;
       this.dragging = false;
       this.last = null;
@@ -273,6 +273,14 @@
         this.text([-1, -0.76, 0.72], 'X 605836 m', '#8dd9e5', 'left');
         this.text([1, -0.76, 0.72], 'X 629576 m', '#8dd9e5', 'right');
         this.text([-0.98, 0.7, -1.02], 'TWT · ms', '#d6b871', 'left');
+        WELL_X.forEach((x, i) => {
+          const y = -0.42 + i * 0.4;
+          this.line([[x, y, 0.78], [x + (i - 1) * 0.05, y, -0.92]], '#55f0c0', 2.4);
+          this.dot([x, y, 0.78], '#eafff8', 4);
+          this.text([x, y, 0.9], WELL_NAMES[i], '#a8ffe6');
+        });
+        this.line([[-1.04, -0.76, 0.84], [1.04, -0.76, 0.84], [1.04, 0.76, 0.84], [-1.04, 0.76, 0.84], [-1.04, -0.76, 0.84]], '#69dce8', 1.1, [5, 3]);
+        this.text([0, 0.73, 0.95], 'F3 区域地质体 · 井网与测线', '#8cecf3');
         return;
       }
       WELL_X.forEach((x, i) => {
@@ -289,7 +297,7 @@
       const count = this.useF3 ? 4 : 5;
       for (let k = 1; k <= count; k++) {
         if (this.useF3 && this.layerVisibility[k - 1] === false) continue;
-        const explode = 0;
+        const explode = this.useF3 ? (2.5 - k) * 0.24 : 0;
         const colour = this.useF3 ? LAYER_COLORS[k - 1] : PALETTE[k - 1];
         this.surface(k, colour, this.useF3 ? Math.max(.42, this.layerOpacity) : 0.55, { zOff: explode, nx: this.useF3 ? 32 : 20, ny: this.useF3 ? 20 : 12, wireAlpha: this.showContours ? 0.76 : 0.08, wireWidth: this.showContours ? 0.52 : 0.35 });
         this.text([-1.05, 0.69, this.horizon(k, -1, 0.69) + explode], this.useF3 ? F3_NAMES[k - 1] : `H${k}`, colour, 'right');

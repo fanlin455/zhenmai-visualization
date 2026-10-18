@@ -53,9 +53,9 @@ class ThreeGeologyScene {
     this.auto = true;
     this.dragging = false;
     this.visible = true;
-    this.yaw = { regional: -.56, strata: -.56, welltie: -.62, fault: -.58, reservoir: -.48 }[this.type];
-    this.pitch = { regional: -.34, strata: -.34, welltie: -.18, fault: -.28, reservoir: -.34 }[this.type];
-    this.zoom = 1;
+    this.yaw = { regional: -.72, strata: .58, welltie: -.62, fault: -.58, reservoir: -.48 }[this.type];
+    this.pitch = { regional: -.28, strata: -.46, welltie: -.18, fault: -.28, reservoir: -.34 }[this.type];
+    this.zoom = { regional: .94, strata: 1.08, welltie: 1, fault: 1, reservoir: 1 }[this.type];
     this.base = { yaw: this.yaw, pitch: this.pitch, zoom: 1 };
     this.layerOpacity = .46;
     this.layerVisibility = [true, true, true, true];
@@ -113,11 +113,8 @@ class ThreeGeologyScene {
     grid.material.opacity = .42;
     this.root.add(grid);
     const builders = {
-      regional: () => this.buildF3Layers(false),
-      // Keep the stratigraphic page on the same continuous, dense triangulated
-      // F3 stack used by the regional page.  The previous separated mode made
-      // the same source grid read as four sparse floating sheets.
-      strata: () => this.buildF3Layers(false),
+      regional: () => this.buildRegionalF3Block(),
+      strata: () => this.buildF3Layers(true),
       welltie: () => this.buildWellTie(),
       fault: () => this.buildFault(),
       reservoir: () => this.buildReservoir()
@@ -196,6 +193,32 @@ class ThreeGeologyScene {
       this.layers.push(layer);
     });
     this.addBounds();
+  }
+
+  buildRegionalF3Block() {
+    this.buildF3Layers(false);
+    this.addWells();
+
+    const surveyColour = 0x66e4ee;
+    const outlineGeometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-2.32, 1.56, -1.68),
+      new THREE.Vector3(2.32, 1.56, -1.68),
+      new THREE.Vector3(2.32, 1.56, 1.68),
+      new THREE.Vector3(-2.32, 1.56, 1.68),
+      new THREE.Vector3(-2.32, 1.56, -1.68)
+    ]);
+    const outline = new THREE.Line(outlineGeometry, new THREE.LineBasicMaterial({ color: surveyColour, transparent: true, opacity: .76 }));
+    this.root.add(outline);
+
+    [
+      [new THREE.Vector3(-2.2, 1.575, -1.28), new THREE.Vector3(2.2, 1.575, .92)],
+      [new THREE.Vector3(-2.2, 1.575, .95), new THREE.Vector3(2.2, 1.575, -1.2)]
+    ].forEach((points) => this.root.add(makeLine(points, 0x3aa9bd, .46)));
+
+    const surveyLabel = labelSprite('F3 区域地质体 · 井网与测线', '#72e8f0');
+    surveyLabel.position.set(0, 1.92, -1.48);
+    surveyLabel.scale.set(1.78, .4, 1);
+    this.root.add(surveyLabel);
   }
 
   syntheticHorizonY(layer, column, faulted = false) {
@@ -525,7 +548,7 @@ function start() {
     document.documentElement.dataset.geologyRenderer = 'threejs-webgl';
   } catch (error) {
     console.warn('Three.js geology renderer unavailable; loading Canvas fallback.', error);
-    import('./story-geology-3d.js?v=renderer-parity-7');
+    import('./story-geology-3d.js?v=scene-distinction-1');
   }
 }
 

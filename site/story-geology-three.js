@@ -178,6 +178,89 @@ class ThreeGeologyScene {
     return { group, mesh, wire, horizon };
   }
 
+  f3Vertex(layer, row, column) {
+    const columns = F3.x.length;
+    const [minX, maxX, minZ, maxZ] = F3.xyRange;
+    const [minTime, maxTime] = F3.timeRange;
+    const coordinateIndex = (row * columns + column) * 2;
+    const x = (F3.coordinates[coordinateIndex] - minX) / (maxX - minX) * 4.5 - 2.25;
+    const z = (F3.coordinates[coordinateIndex + 1] - minZ) / (maxZ - minZ) * 3.2 - 1.6;
+    const time = F3.horizons[layer].values[row * columns + column];
+    const y = 1.2 - (time - minTime) / (maxTime - minTime) * 2.5;
+    return new THREE.Vector3(x, y, z);
+  }
+
+  createF3IntervalVolume(topLayer, bottomLayer, colour) {
+    const columns = F3.x.length;
+    const rows = F3.y.length;
+    const vertexCount = rows * columns;
+    const positions = [];
+    const indices = [];
+
+    for (let layerIndex = 0; layerIndex < 2; layerIndex += 1) {
+      const layer = layerIndex === 0 ? topLayer : bottomLayer;
+      for (let row = 0; row < rows; row += 1) {
+        for (let column = 0; column < columns; column += 1) {
+          positions.push(...this.f3Vertex(layer, row, column).toArray());
+        }
+      }
+    }
+
+    for (let row = 0; row < rows - 1; row += 1) {
+      for (let column = 0; column < columns - 1; column += 1) {
+        const a = row * columns + column;
+        const b = a + 1;
+        const c = a + columns;
+        const d = c + 1;
+        indices.push(a, c, b, b, c, d);
+        indices.push(a + vertexCount, b + vertexCount, c + vertexCount, b + vertexCount, d + vertexCount, c + vertexCount);
+      }
+    }
+
+    const addWall = (topA, topB) => {
+      const bottomA = topA + vertexCount;
+      const bottomB = topB + vertexCount;
+      indices.push(topA, topB, bottomA, topB, bottomB, bottomA);
+    };
+    for (let column = 0; column < columns - 1; column += 1) {
+      addWall(column, column + 1);
+      const back = (rows - 1) * columns + column;
+      addWall(back + 1, back);
+    }
+    for (let row = 0; row < rows - 1; row += 1) {
+      const left = row * columns;
+      addWall(left + columns, left);
+      const right = row * columns + columns - 1;
+      addWall(right, right + columns);
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
+      color: colour,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: .5,
+      depthWrite: true,
+      toneMapped: false
+    }));
+    const wire = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
+      color: colour,
+      wireframe: true,
+      transparent: true,
+      opacity: .54,
+      depthWrite: false,
+      toneMapped: false
+    }));
+    mesh.renderOrder = topLayer * 3 + 1;
+    wire.renderOrder = topLayer * 3 + 2;
+    const group = new THREE.Group();
+    group.add(mesh, wire);
+    return { group, mesh, wire };
+  }
+
   buildF3Layers(separated) {
     this.layers = [];
     if (!F3?.horizons?.length) {
@@ -196,29 +279,57 @@ class ThreeGeologyScene {
   }
 
   buildRegionalF3Block() {
-    this.buildF3Layers(false);
+    if (!F3?.horizons?.length) {
+      this.buildSyntheticLayers(false, false);
+      this.addWells();
+      return;
+    }
+
+    this.layers = [];
+    const intervalNames = ['H1—H2', 'H2—D0', 'D0—H3'];
+    intervalNames.forEach((name, index) => {
+      const interval = this.createF3IntervalVolume(index, index + 1, COLORS[index]);
+      const centreRow = Math.floor(F3.y.length / 2);
+      const centreColumn = 1;
+      const top = this.f3Vertex(index, centreRow, centreColumn);
+      const bottom = this.f3Vertex(index + 1, centreRow, centreColumn);
+      const label = labelSprite(name, COLORS[index]);
+      label.position.set(-2.38, (top.y + bottom.y) / 2, -.82);
+      label.scale.set(.82, .24, 1);
+      interval.group.add(label);
+      this.root.add(interval.group);
+      this.layers.push(interval);
+    });
+
     this.addWells();
 
     const surveyColour = 0x66e4ee;
+    const lastRow = F3.y.length - 1;
+    const lastColumn = F3.x.length - 1;
+    const lifted = (point) => point.clone().add(new THREE.Vector3(0, .045, 0));
     const outlineGeometry = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(-2.32, 1.56, -1.68),
-      new THREE.Vector3(2.32, 1.56, -1.68),
-      new THREE.Vector3(2.32, 1.56, 1.68),
-      new THREE.Vector3(-2.32, 1.56, 1.68),
-      new THREE.Vector3(-2.32, 1.56, -1.68)
+      lifted(this.f3Vertex(0, 0, 0)),
+      lifted(this.f3Vertex(0, 0, lastColumn)),
+      lifted(this.f3Vertex(0, lastRow, lastColumn)),
+      lifted(this.f3Vertex(0, lastRow, 0)),
+      lifted(this.f3Vertex(0, 0, 0))
     ]);
     const outline = new THREE.Line(outlineGeometry, new THREE.LineBasicMaterial({ color: surveyColour, transparent: true, opacity: .76 }));
     this.root.add(outline);
 
-    [
-      [new THREE.Vector3(-2.2, 1.575, -1.28), new THREE.Vector3(2.2, 1.575, .92)],
-      [new THREE.Vector3(-2.2, 1.575, .95), new THREE.Vector3(2.2, 1.575, -1.2)]
-    ].forEach((points) => this.root.add(makeLine(points, 0x3aa9bd, .46)));
+    const diagonal = (reverse = false) => Array.from({ length: 28 }, (_, index) => {
+      const ratio = index / 27;
+      const row = Math.round(ratio * lastRow);
+      const column = Math.round((reverse ? 1 - ratio : ratio) * lastColumn);
+      return lifted(this.f3Vertex(0, row, column));
+    });
+    [diagonal(false), diagonal(true)].forEach((points) => this.root.add(makeLine(points, 0x3aa9bd, .55)));
 
-    const surveyLabel = labelSprite('F3 区域地质体 · 井网与测线', '#72e8f0');
-    surveyLabel.position.set(0, 1.92, -1.48);
-    surveyLabel.scale.set(1.78, .4, 1);
+    const surveyLabel = labelSprite('F3 分层地质块体 · 井网与测线', '#72e8f0');
+    surveyLabel.position.set(0, 1.72, -1.48);
+    surveyLabel.scale.set(1.88, .4, 1);
     this.root.add(surveyLabel);
+    this.addBounds();
   }
 
   syntheticHorizonY(layer, column, faulted = false) {
@@ -548,7 +659,7 @@ function start() {
     document.documentElement.dataset.geologyRenderer = 'threejs-webgl';
   } catch (error) {
     console.warn('Three.js geology renderer unavailable; loading Canvas fallback.', error);
-    import('./story-geology-3d.js?v=scene-distinction-1');
+    import('./story-geology-3d.js?v=scene-distinction-2');
   }
 }
 

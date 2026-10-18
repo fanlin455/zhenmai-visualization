@@ -7,6 +7,7 @@
   const state = {
     trace: Number(sessionStorage.getItem('geology-selected-trace')) || 220,
     threshold: Number(sessionStorage.getItem('geology-reservoir-threshold')) || data.stats.targetThreshold,
+    interval: Number(sessionStorage.getItem('geology-reservoir-interval')) || 0,
     hoverRow: 76,
     consoles: []
   };
@@ -21,6 +22,14 @@
   const zoneOf = (trace) => trace < 265 ? ['西部稳定层状区', '反射连续、风险较低'] : trace <= 290 ? ['F1 构造转换带', '五条层界同步错动'] : ['东部扰动区', '局部不相干响应增强'];
   const colors = ['#55d9e7', '#69b7d1', '#7e9fd1', '#55c7a5', '#c7aa68'];
   const faultColor = '#c66f78';
+  const caseMeta = {
+    regional: { code: 'F3-R04', primary: '公开 F3 实测层位', support: 'SYN-WELL-01 方法验证基线' },
+    strata: { code: 'F3-R04', primary: '公开 F3 实测层位', support: 'SYN-WELL-01 方法验证基线' },
+    welltie: { code: 'SYN-WELL-01', primary: '合成井震验证案例', support: '三井 · 五层位 · 统一采样网格' },
+    fault: { code: 'SYN-WELL-01', primary: '合成构造验证案例', support: 'F1 断裂 · 五层位 · 统一采样网格' },
+    reservoir: { code: 'SYN-WELL-01', primary: '合成储层验证案例', support: '属性体 · 三井 · 五层位' }
+  };
+  const intervalNames = ['H1—H2', 'H2—H3', 'H3—H4', 'H4—H5'];
   function createCanvas(className, label) {
     const canvas = document.createElement('canvas');
     canvas.className = className;
@@ -52,15 +61,17 @@
         reservoir: ['属性解释联动台', '阈值、层段与弹性属性沿同一道同步读取']
       };
       const title = titles[this.mode][0];
+      const meta = caseMeta[this.mode];
       this.root.innerHTML = `
         <div class="analysis-console-head">
-          <h2>${title}</h2>
+          <div><span class="analysis-case-code">CASE ${meta.code}</span><h2>${title}</h2></div>
+          <div class="analysis-source-chain"><b>${meta.primary}</b><i>→</i><span>${meta.support}</span></div>
         </div>
         <div class="analysis-toolbar">
           <label>当前道号 <strong data-trace-label>${state.trace}</strong><input data-trace-slider type="range" min="0" max="447" step="1" value="${state.trace}"></label>
           <div class="analysis-well-buttons" role="group" aria-label="快速定位井位"></div>
           <div class="analysis-toolbar-tail">
-            ${this.mode === 'reservoir' ? `<label class="analysis-threshold">优选阈值 <strong data-threshold-label>${state.threshold.toFixed(2)}</strong><input data-threshold-slider type="range" min="0.70" max="0.95" step="0.01" value="${state.threshold.toFixed(2)}"></label>` : ''}
+            ${this.mode === 'reservoir' ? `<div class="analysis-reservoir-controls"><label class="analysis-interval">评价层段 <select data-interval-select>${intervalNames.map((name, index) => `<option value="${index}"${index === state.interval ? ' selected' : ''}>${name}</option>`).join('')}</select></label><label class="analysis-threshold">优选阈值 <strong data-threshold-label>${state.threshold.toFixed(2)}</strong><input data-threshold-slider type="range" min="0.70" max="0.95" step="0.01" value="${state.threshold.toFixed(2)}"></label></div>` : ''}
             <output data-coordinate>读取坐标…</output>
           </div>
         </div>
@@ -72,6 +83,7 @@
               <div><dt>双程时间</dt><dd data-time>—</dd></div><div><dt>振幅</dt><dd data-amplitude>—</dd></div>
               <div><dt>风险代理</dt><dd data-risk>—</dd></div><div><dt>储层指示</dt><dd data-reservoir>—</dd></div>
             </dl>
+            <div class="analysis-conclusion"><span>动态结论</span><strong data-conclusion>正在建立证据链…</strong><small data-conclusion-evidence></small></div>
           </aside>
         </div>`;
       this.root.querySelector('.analysis-view-main').append(this.mainCanvas);
@@ -100,8 +112,14 @@
       threshold?.addEventListener('input', () => {
         state.threshold = Number(threshold.value);
         sessionStorage.setItem('geology-reservoir-threshold', String(state.threshold));
-        this.render();
-        window.dispatchEvent(new CustomEvent('geology:reservoir', { detail: { threshold: state.threshold } }));
+        state.consoles.forEach((consoleView) => consoleView.render());
+        window.dispatchEvent(new CustomEvent('geology:reservoir', { detail: { threshold: state.threshold, interval: state.interval } }));
+      });
+      this.root.querySelector('[data-interval-select]')?.addEventListener('change', (event) => {
+        state.interval = Number(event.target.value);
+        sessionStorage.setItem('geology-reservoir-interval', String(state.interval));
+        state.consoles.forEach((consoleView) => consoleView.render());
+        window.dispatchEvent(new CustomEvent('geology:reservoir', { detail: { threshold: state.threshold, interval: state.interval } }));
       });
       this.root.querySelectorAll('[data-trace]').forEach((button) => button.addEventListener('click', () => setTrace(Number(button.dataset.trace), 'well')));
       const locate = (event, commit = false) => {
@@ -170,8 +188,16 @@
       const rows = values.length, cols = values[0].length;
       const image = new ImageData(cols, rows);
       for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-        const [red, green, blue] = this.heatColor(values[r][c], mode);
-        const i = (r * cols + c) * 4; image.data[i] = red; image.data[i + 1] = green; image.data[i + 2] = blue; image.data[i + 3] = 255;
+        let [red, green, blue] = this.heatColor(values[r][c], mode);
+        const i = (r * cols + c) * 4;
+        if (mode === 'reservoir') {
+          const time = data.grid.timesMs[r];
+          const insideInterval = time >= data.horizons.timesMs[state.interval][c] && time <= data.horizons.timesMs[state.interval + 1][c];
+          const retained = insideInterval && values[r][c] / 255 >= state.threshold;
+          const blend = retained ? 1 : insideInterval ? .22 : .08;
+          red = Math.round(red * blend + 5); green = Math.round(green * blend + 13); blue = Math.round(blue * blend + 24);
+        }
+        image.data[i] = red; image.data[i + 1] = green; image.data[i + 2] = blue; image.data[i + 3] = 255;
       }
       const off = document.createElement('canvas'); off.width = cols; off.height = rows; off.getContext('2d').putImageData(image, 0, 0);
       ctx.imageSmoothingEnabled = true; ctx.drawImage(off, plot.x, plot.y, plot.w, plot.h);
@@ -195,6 +221,17 @@
       }
       this.drawAxes(ctx, plot);
       this.drawCursor(ctx, plot, cols, rows);
+      if (mode === 'reservoir') this.drawThresholdLegend(ctx, plot, values);
+    }
+
+    drawThresholdLegend(ctx, plot, values) {
+      const { kept, total, share } = this.reservoirSummary();
+      ctx.fillStyle = '#03111de8'; ctx.fillRect(plot.x + 8, plot.y + 8, 184, 35);
+      ctx.strokeStyle = '#4fcfdc'; ctx.strokeRect(plot.x + 8, plot.y + 8, 184, 35);
+      ctx.fillStyle = '#79e1e8'; ctx.font = '700 11px Consolas'; ctx.textAlign = 'left';
+      ctx.fillText(`${intervalNames[state.interval]} · 保留 ≥ ${state.threshold.toFixed(2)}`, plot.x + 16, plot.y + 22);
+      ctx.fillStyle = '#b6ccd6'; ctx.font = '10px "Microsoft YaHei",sans-serif';
+      ctx.fillText(`全体样本 ${kept}/${total} · ${(share * 100).toFixed(1)}%`, plot.x + 16, plot.y + 36);
     }
 
     drawAxes(ctx, plot) {
@@ -310,6 +347,77 @@
       const thresholdLabel = this.root.querySelector('[data-threshold-label]');
       if (thresholdLabel) thresholdLabel.textContent = state.threshold.toFixed(2);
       this.root.querySelectorAll('[data-trace]').forEach((button) => button.classList.toggle('is-active', Number(button.dataset.trace) === trace));
+      this.updateConclusion({ col, row, trace, time, seismic, risk, reservoir, zone });
+      this.updateLinkedMarkers(trace);
+    }
+
+    reservoirSummary() {
+      const top = data.horizons.timesMs[state.interval];
+      const base = data.horizons.timesMs[state.interval + 1];
+      let kept = 0, total = 0;
+      data.grid.timesMs.forEach((time, row) => data.grid.traces.forEach((trace, col) => {
+        if (time < top[col] || time > base[col]) return;
+        total += 1;
+        if (data.grid.reservoir[row][col] / 255 >= state.threshold) kept += 1;
+      }));
+      return { kept, total, share: total ? kept / total : 0 };
+    }
+
+    updateConclusion(reading) {
+      const conclusion = this.root.querySelector('[data-conclusion]');
+      const evidence = this.root.querySelector('[data-conclusion-evidence]');
+      if (!conclusion || !evidence) return;
+      const thickness = data.horizons.timesMs.slice(1).map((line, index) => line[reading.col] - data.horizons.timesMs[index][reading.col]);
+      const thickest = thickness.indexOf(Math.max(...thickness));
+      const nearestWell = data.wells.reduce((best, well) => Math.abs(well.trace - reading.trace) < Math.abs(best.trace - reading.trace) ? well : best, data.wells[0]);
+      const copy = {
+        regional: [`${reading.zone}为当前定位单元`, `Trace ${reading.trace} · E ${Math.round(data.survey.traceX[reading.col])} m · N ${Math.round(data.survey.traceY[reading.col])} m`],
+        strata: [`${intervalNames[thickest]}为当前道最厚层段`, `厚度 ${thickness[thickest].toFixed(1)} ms；白色游标已同步至剖面与周边证据图`],
+        welltie: [`当前道最接近 ${nearestWell.name}`, `井位 Trace ${nearestWell.trace}；游标时间 ${reading.time.toFixed(0)} ms；归一化振幅 ${reading.seismic.toFixed(2)}`],
+        fault: [Math.abs(reading.trace - data.stats.faultTrace) <= 14 ? '当前位置进入 F1 构造转换带' : '当前位置位于 F1 断裂影响带外', `距断层中心 ${Math.abs(reading.trace - data.stats.faultTrace)} 道；风险代理 ${(reading.risk * 100).toFixed(0)}%`],
+        reservoir: ['', '']
+      }[this.mode];
+      if (this.mode === 'reservoir') {
+        const summary = this.reservoirSummary();
+        copy[0] = `${intervalNames[state.interval]} 在阈值 ${state.threshold.toFixed(2)} 下保留 ${(summary.share * 100).toFixed(1)}%`;
+        copy[1] = `保留 ${summary.kept}/${summary.total} 个层内样本；当前道指示值 ${reading.reservoir.toFixed(2)}，${reading.reservoir >= state.threshold ? '满足' : '未满足'}优选条件`;
+      }
+      conclusion.textContent = copy[0]; evidence.textContent = copy[1];
+    }
+
+    installLinkedMarkers() {
+      document.querySelectorAll('.story-panel').forEach((panel, index) => {
+        const heading = panel.querySelector('.story-panel-heading');
+        if (!heading || heading.querySelector('.data-case-chip')) return;
+        const isF3 = index === 0 && (this.mode === 'regional' || this.mode === 'strata');
+        const chip = document.createElement('em');
+        chip.className = `data-case-chip ${isF3 ? 'is-f3' : 'is-synthetic'}`;
+        chip.textContent = isF3 ? 'F3-R04 · 实测层位' : 'SYN-WELL-01 · 方法验证';
+        heading.append(chip);
+      });
+      const patterns = {
+        regional: ['data-seismic-section', 'data-horizon-profiles'],
+        strata: ['data-stratigraphic-architecture', 'data-thickness-heatmap', 'data-horizon-profiles'],
+        welltie: ['data-seismic-section', 'data-well-log-correlation'],
+        fault: ['data-structural-framework', 'data-risk-domain-profile', 'data-quality-risk'],
+        reservoir: ['data-elastic-properties', 'data-reservoir-indicator']
+      }[this.mode];
+      document.querySelectorAll('.story-panel img').forEach((image) => {
+        if (!patterns.some(pattern => image.src.includes(pattern))) return;
+        const panel = image.closest('.story-panel');
+        if (!panel || panel.querySelector('.linked-selection-marker')) return;
+        const marker = document.createElement('div');
+        marker.className = 'linked-selection-marker'; marker.setAttribute('aria-hidden', 'true');
+        marker.innerHTML = '<i></i><span></span>';
+        panel.append(marker);
+      });
+    }
+
+    updateLinkedMarkers(trace) {
+      document.querySelectorAll('.linked-selection-marker').forEach((marker) => {
+        marker.style.setProperty('--linked-position', `${clamp(trace / 447 * 100, 2, 98)}%`);
+        marker.querySelector('span').textContent = `T${trace}`;
+      });
     }
   }
 
@@ -321,7 +429,11 @@
   }
 
   const boot = () => {
-    document.querySelectorAll('[data-analysis]').forEach((root) => state.consoles.push(new AnalysisConsole(root)));
+    document.querySelectorAll('[data-analysis]').forEach((root) => {
+      const consoleView = new AnalysisConsole(root);
+      state.consoles.push(consoleView);
+      consoleView.installLinkedMarkers();
+    });
     setTrace(state.trace, 'boot');
     window.dispatchEvent(new CustomEvent('geology:reservoir', { detail: { threshold: state.threshold, interval: Number(sessionStorage.getItem('geology-reservoir-interval')) || 0 } }));
     if (location.hash === '#analysis-console') requestAnimationFrame(() => {
@@ -333,5 +445,10 @@
       requestAnimationFrame(() => { document.documentElement.style.scrollBehavior = previous; });
     });
   };
+  window.addEventListener('geology:reservoir', (event) => {
+    if (Number.isFinite(event.detail?.threshold)) state.threshold = event.detail.threshold;
+    if (Number.isFinite(event.detail?.interval)) state.interval = event.detail.interval;
+    state.consoles.forEach((consoleView) => consoleView.render());
+  });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true }); else boot();
 })();

@@ -63,6 +63,7 @@ class ThreeGeologyScene {
     this.showContours = true;
     this.reservoirInterval = Number(sessionStorage.getItem('geology-reservoir-interval')) || 0;
     this.reservoirThreshold = Number(sessionStorage.getItem('geology-reservoir-threshold')) || DATA?.stats?.targetThreshold || .85;
+    this.selectedTrace = Number(sessionStorage.getItem('geology-selected-trace')) || 220;
     this.initRenderer();
     this.buildScene();
     this.bind();
@@ -120,7 +121,23 @@ class ThreeGeologyScene {
       reservoir: () => this.buildReservoir()
     };
     builders[this.type]?.();
+    if (['welltie', 'fault', 'reservoir'].includes(this.type)) this.addTraceIndicator();
     this.root.rotation.order = 'YXZ';
+  }
+
+  addTraceIndicator() {
+    this.traceIndicator = new THREE.Group();
+    const line = makeLine([new THREE.Vector3(0, -1.55, 1.62), new THREE.Vector3(0, 1.58, 1.62)], 0xf2fdff, .96);
+    const marker = new THREE.Mesh(new THREE.RingGeometry(.07, .11, 24), new THREE.MeshBasicMaterial({ color: 0x72e7ef, side: THREE.DoubleSide, toneMapped: false }));
+    marker.position.set(0, -1.5, 1.62);
+    this.traceIndicator.add(line, marker);
+    this.root.add(this.traceIndicator);
+    this.updateTraceIndicator();
+  }
+
+  updateTraceIndicator() {
+    if (!this.traceIndicator) return;
+    this.traceIndicator.position.x = this.selectedTrace / 447 * 4.5 - 2.25;
   }
 
   createF3Surface(layer, separated = false) {
@@ -499,18 +516,19 @@ class ThreeGeologyScene {
     const colours = [];
     const sizes = [];
     const color = new THREE.Color();
-    const intervalOffset = this.reservoirInterval * .12;
+    const top = DATA.horizons.timesMs[this.reservoirInterval];
+    const base = DATA.horizons.timesMs[this.reservoirInterval + 1];
     for (let row = 2; row < rows - 2; row += 3) {
       for (let column = 1; column < columns - 1; column += 2) {
-        const amplitude = Math.abs(DATA.grid.seismic[row][column]) / 127;
-        const lateral = .18 * Math.sin(column * .16) + .12 * Math.cos(row * .13);
-        const value = clamp(.38 + amplitude * .5 + lateral + intervalOffset, 0, 1);
-        if (value < Math.max(.42, this.reservoirThreshold - .24)) continue;
+        const time = DATA.grid.timesMs[row];
+        if (time < top[column] || time > base[column]) continue;
+        const value = DATA.grid.reservoir[row][column] / 255;
+        if (value < this.reservoirThreshold) continue;
         const x = column / (columns - 1) * 4.5 - 2.25;
         const y = 1.26 - row / (rows - 1) * 2.55;
         const z = Math.sin(column * .21 + row * .1) * .72 + Math.cos(row * .17) * .32;
         positions.push(x, y, z);
-        color.set(value >= this.reservoirThreshold ? 0xc7aa68 : value > .68 ? 0x55c7a5 : 0x456e8c);
+        color.set(value >= Math.min(1, this.reservoirThreshold + .06) ? 0xe1bd5c : 0x55c7a5);
         colours.push(color.r, color.g, color.b);
         sizes.push(value);
       }
@@ -522,7 +540,7 @@ class ThreeGeologyScene {
     this.reservoirGroup.add(new THREE.Points(geometry, material));
     const shell = new THREE.Mesh(new THREE.BoxGeometry(4.55, 2.6, 2.4), new THREE.MeshBasicMaterial({ color: 0x58e3ea, wireframe: true, transparent: true, opacity: .24, toneMapped: false }));
     this.reservoirGroup.add(shell);
-    const label = labelSprite(`H${this.reservoirInterval + 1} 属性体`, '#c7aa68');
+    const label = labelSprite(`H${this.reservoirInterval + 1}—H${this.reservoirInterval + 2} · ≥${this.reservoirThreshold.toFixed(2)}`, '#c7aa68');
     label.position.set(-1.75, 1.56, -1.05);
     this.reservoirGroup.add(label);
   }
@@ -594,6 +612,11 @@ class ThreeGeologyScene {
       if (Number.isFinite(event.detail?.interval)) this.reservoirInterval = event.detail.interval;
       if (Number.isFinite(event.detail?.threshold)) this.reservoirThreshold = event.detail.threshold;
       this.rebuildReservoir();
+    });
+    window.addEventListener('geology:trace', (event) => {
+      if (!Number.isFinite(event.detail?.trace)) return;
+      this.selectedTrace = event.detail.trace;
+      this.updateTraceIndicator();
     });
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(this.shell || this.canvas);

@@ -127,10 +127,27 @@
   const password = document.getElementById('login-password');
   const button = document.getElementById('login-button');
   const status = document.getElementById('login-status');
+  const demoFill = document.querySelector('[data-demo-fill]');
+  const isPublicDemo = location.hostname.endsWith('.github.io');
+  const openWorkspace = () => {
+    sessionStorage.setItem('zhenmai-demo-authenticated', 'true');
+    if (globalThis.ZhenmaiNavigate) globalThis.ZhenmaiNavigate('overview.html', { replace: true });
+    else location.replace('overview.html');
+  };
   const clearError = () => {
     status.textContent = '';
     account.removeAttribute('aria-invalid'); password.removeAttribute('aria-invalid');
   };
+  demoFill?.addEventListener('click', () => {
+    account.value = 'guest';
+    password.value = 'demo2026';
+    clearError();
+    account.focus();
+  });
+  if (isPublicDemo) {
+    account.value = 'guest';
+    password.value = 'demo2026';
+  }
   account.addEventListener('input', clearError); password.addEventListener('input', clearError);
   form.addEventListener('submit', async event => {
     event.preventDefault();
@@ -141,6 +158,16 @@
     }
     button.disabled = true;
     try {
+      if (isPublicDemo) {
+        if (account.value.trim() !== 'guest' || password.value !== 'demo2026') {
+          account.setAttribute('aria-invalid', 'true'); password.setAttribute('aria-invalid', 'true');
+          throw new Error('公开演示请使用 guest / demo2026。');
+        }
+        button.querySelector('span').textContent = '正在进入分析系统';
+        await new Promise(resolve => setTimeout(resolve, 280));
+        openWorkspace();
+        return;
+      }
       const response = await fetch('/api/login', {
         method: 'POST', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
@@ -155,8 +182,7 @@
         }
         throw new Error(data.error || '登录失败，请重试。');
       }
-      if (globalThis.ZhenmaiNavigate) globalThis.ZhenmaiNavigate('/index.html', { replace: true });
-      else location.replace('/index.html');
+      openWorkspace();
     } catch (error) {
       status.textContent = error.name === 'TimeoutError' ? '连接超时，请检查本地服务后重试。' : error instanceof TypeError ? '无法连接登录服务，请重新一键启动。' : error.message;
     } finally { button.disabled = false; }

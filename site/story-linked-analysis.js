@@ -80,8 +80,8 @@
           <aside class="analysis-inspector">
             <div class="analysis-view-title"><b data-detail-title>关联证据</b><span data-zone></span></div>
             <dl class="analysis-readout">
-              <div><dt>双程时间</dt><dd data-time>—</dd></div><div><dt>振幅</dt><dd data-amplitude>—</dd></div>
-              <div><dt>风险代理</dt><dd data-risk>—</dd></div><div><dt>储层指示</dt><dd data-reservoir>—</dd></div>
+              <div><dt data-metric-label="time">双程时间</dt><dd data-time>—</dd></div><div><dt data-metric-label="amplitude">振幅</dt><dd data-amplitude>—</dd></div>
+              <div><dt data-metric-label="risk">风险代理</dt><dd data-risk>—</dd></div><div><dt data-metric-label="reservoir">储层指示</dt><dd data-reservoir>—</dd></div>
             </dl>
             <div class="analysis-conclusion"><span>动态结论</span><strong data-conclusion>正在建立证据链…</strong><small data-conclusion-evidence></small></div>
           </aside>
@@ -103,6 +103,16 @@
       }[this.mode];
       this.root.querySelector('[data-main-title]').textContent = labels[0];
       this.root.querySelector('[data-detail-title]').textContent = labels[1];
+      const metricLabels = {
+        regional: ['双程时间', '振幅', '风险代理', '储层指示'],
+        strata: ['双程时间', '振幅', '最大层厚', '对应层段'],
+        welltie: ['双程时间', '振幅', '平均残差', '标定置信度'],
+        fault: ['双程时间', '风险代理', '距 F1 中心', '平均视错距'],
+        reservoir: ['双程时间', '当前指示', '层段保留率', '连续候选区']
+      }[this.mode];
+      ['time', 'amplitude', 'risk', 'reservoir'].forEach((key, index) => {
+        this.root.querySelector(`[data-metric-label="${key}"]`).textContent = metricLabels[index];
+      });
     }
 
     bind() {
@@ -221,17 +231,34 @@
       }
       this.drawAxes(ctx, plot);
       this.drawCursor(ctx, plot, cols, rows);
-      if (mode === 'reservoir') this.drawThresholdLegend(ctx, plot, values);
+      if (mode === 'reservoir') {
+        const summary = this.reservoirSummary();
+        this.drawCandidateBoundaries(ctx, plot, summary);
+        this.drawThresholdLegend(ctx, plot, summary);
+      }
     }
 
-    drawThresholdLegend(ctx, plot, values) {
-      const { kept, total, share } = this.reservoirSummary();
-      ctx.fillStyle = '#03111de8'; ctx.fillRect(plot.x + 8, plot.y + 8, 184, 35);
-      ctx.strokeStyle = '#4fcfdc'; ctx.strokeRect(plot.x + 8, plot.y + 8, 184, 35);
+    drawThresholdLegend(ctx, plot, summary) {
+      const { kept, total, share } = summary;
+      ctx.fillStyle = '#03111de8'; ctx.fillRect(plot.x + 8, plot.y + 8, 212, 35);
+      ctx.strokeStyle = '#4fcfdc'; ctx.strokeRect(plot.x + 8, plot.y + 8, 212, 35);
       ctx.fillStyle = '#79e1e8'; ctx.font = '700 11px Consolas'; ctx.textAlign = 'left';
       ctx.fillText(`${intervalNames[state.interval]} · 保留 ≥ ${state.threshold.toFixed(2)}`, plot.x + 16, plot.y + 22);
       ctx.fillStyle = '#b6ccd6'; ctx.font = '10px "Microsoft YaHei",sans-serif';
-      ctx.fillText(`全体样本 ${kept}/${total} · ${(share * 100).toFixed(1)}%`, plot.x + 16, plot.y + 36);
+      ctx.fillText(`层内样本 ${kept}/${total} · ${(share * 100).toFixed(1)}% · ${summary.candidates.length} 个候选区`, plot.x + 16, plot.y + 36);
+    }
+
+    drawCandidateBoundaries(ctx, plot, summary) {
+      summary.candidates.slice(0, 4).forEach((candidate, index) => {
+        const x1 = plot.x + candidate.start / (data.grid.traces.length - 1) * plot.w;
+        const x2 = plot.x + candidate.end / (data.grid.traces.length - 1) * plot.w;
+        ctx.fillStyle = index === 0 ? '#59e0c614' : '#59d8e40d'; ctx.fillRect(x1, plot.y, Math.max(2, x2 - x1), plot.h);
+        ctx.strokeStyle = index === 0 ? '#7ff0d4' : '#62dce8'; ctx.lineWidth = index === 0 ? 1.5 : 1;
+        ctx.setLineDash([4, 3]); ctx.strokeRect(x1, plot.y + 1, Math.max(2, x2 - x1), plot.h - 2); ctx.setLineDash([]);
+        ctx.fillStyle = '#061725e8'; ctx.fillRect(x1 + 3, plot.y + plot.h - 19, 42, 15);
+        ctx.fillStyle = index === 0 ? '#8bf3dc' : '#7bdde7'; ctx.font = '700 10px Consolas'; ctx.textAlign = 'left';
+        ctx.fillText(`C${index + 1}`, x1 + 8, plot.y + plot.h - 8);
+      });
     }
 
     drawAxes(ctx, plot) {
@@ -344,6 +371,27 @@
       this.root.querySelector('[data-amplitude]').textContent = `${seismic >= 0 ? '+' : ''}${seismic.toFixed(2)}`;
       this.root.querySelector('[data-risk]').textContent = `${(risk * 100).toFixed(0)}%`;
       this.root.querySelector('[data-reservoir]').textContent = reservoir.toFixed(2);
+      if (this.mode === 'strata') {
+        const thickness = data.horizons.timesMs.slice(1).map((line, index) => line[col] - data.horizons.timesMs[index][col]);
+        const index = thickness.indexOf(Math.max(...thickness));
+        this.root.querySelector('[data-risk]').textContent = `${thickness[index].toFixed(1)} ms`;
+        this.root.querySelector('[data-reservoir]').textContent = intervalNames[index];
+      } else if (this.mode === 'welltie') {
+        const nearestWell = data.wells.reduce((best, well) => Math.abs(well.trace - trace) < Math.abs(best.trace - trace) ? well : best, data.wells[0]);
+        const validation = this.wellTieValidation(nearestWell);
+        this.root.querySelector('[data-risk]').textContent = `${validation.meanAbs.toFixed(1)} ms`;
+        this.root.querySelector('[data-reservoir]').textContent = `${(validation.confidence * 100).toFixed(0)}%`;
+      } else if (this.mode === 'fault') {
+        const meanThrow = data.stats.faultThrowMs.reduce((sum, value) => sum + value, 0) / data.stats.faultThrowMs.length;
+        this.root.querySelector('[data-amplitude]').textContent = `${(risk * 100).toFixed(0)}%`;
+        this.root.querySelector('[data-risk]').textContent = `${Math.abs(trace - data.stats.faultTrace)} 道`;
+        this.root.querySelector('[data-reservoir]').textContent = `${meanThrow.toFixed(1)} ms`;
+      } else if (this.mode === 'reservoir') {
+        const summary = this.reservoirSummary();
+        this.root.querySelector('[data-amplitude]').textContent = reservoir.toFixed(2);
+        this.root.querySelector('[data-risk]').textContent = `${(summary.share * 100).toFixed(1)}%`;
+        this.root.querySelector('[data-reservoir]').textContent = `${summary.candidates.length} 区`;
+      }
       const thresholdLabel = this.root.querySelector('[data-threshold-label]');
       if (thresholdLabel) thresholdLabel.textContent = state.threshold.toFixed(2);
       this.root.querySelectorAll('[data-trace]').forEach((button) => button.classList.toggle('is-active', Number(button.dataset.trace) === trace));
@@ -351,16 +399,65 @@
       this.updateLinkedMarkers(trace);
     }
 
-    reservoirSummary() {
+    wellTieValidation(well) {
+      const col = nearestColumn(well.trace);
+      const residuals = data.horizons.timesMs.map(line => {
+        const picked = line[col];
+        let pickedRow = 0;
+        data.grid.timesMs.forEach((time, row) => { if (Math.abs(time - picked) < Math.abs(data.grid.timesMs[pickedRow] - picked)) pickedRow = row; });
+        let peakRow = pickedRow, peakAmplitude = 0;
+        for (let row = Math.max(0, pickedRow - 5); row <= Math.min(data.grid.timesMs.length - 1, pickedRow + 5); row += 1) {
+          const amplitude = Math.abs(data.grid.seismic[row][col]);
+          if (amplitude > peakAmplitude) { peakAmplitude = amplitude; peakRow = row; }
+        }
+        const residual = data.grid.timesMs[peakRow] - picked;
+        const confidence = clamp(Math.exp(-Math.abs(residual) / 14) * (1 - data.grid.risk[peakRow][col] / 255 * .55), 0, 1);
+        return { residual, confidence };
+      });
+      return {
+        residuals,
+        meanAbs: residuals.reduce((sum, item) => sum + Math.abs(item.residual), 0) / residuals.length,
+        maxAbs: Math.max(...residuals.map(item => Math.abs(item.residual))),
+        confidence: residuals.reduce((sum, item) => sum + item.confidence, 0) / residuals.length
+      };
+    }
+
+    reservoirSummary(threshold = state.threshold) {
       const top = data.horizons.timesMs[state.interval];
       const base = data.horizons.timesMs[state.interval + 1];
-      let kept = 0, total = 0;
-      data.grid.timesMs.forEach((time, row) => data.grid.traces.forEach((trace, col) => {
-        if (time < top[col] || time > base[col]) return;
-        total += 1;
-        if (data.grid.reservoir[row][col] / 255 >= state.threshold) kept += 1;
-      }));
-      return { kept, total, share: total ? kept / total : 0 };
+      const perColumn = data.grid.traces.map((trace, col) => {
+        const previous = Math.max(0, col - 1), next = Math.min(data.grid.traces.length - 1, col + 1);
+        const dx = Math.hypot(data.survey.traceX[next] - data.survey.traceX[previous], data.survey.traceY[next] - data.survey.traceY[previous]) / Math.max(next - previous, 1);
+        let kept = 0, total = 0, grossArea = 0, netArea = 0;
+        data.grid.timesMs.forEach((time, row) => {
+          if (time < top[col] || time > base[col]) return;
+          const cellArea = dx * data.grid.velocity[row][col] * .004 / 2;
+          const selected = data.grid.reservoir[row][col] / 255 >= threshold;
+          total += 1; grossArea += cellArea;
+          if (selected) { kept += 1; netArea += cellArea; }
+        });
+        return { trace, col, kept, total, share: total ? kept / total : 0, grossArea, netArea };
+      });
+      const smoothed = perColumn.map((item, index) => {
+        const neighbours = perColumn.slice(Math.max(0, index - 2), Math.min(perColumn.length, index + 3));
+        return neighbours.reduce((sum, entry) => sum + entry.share, 0) / neighbours.length;
+      });
+      const candidates = [];
+      let active = null;
+      perColumn.forEach((item, index) => {
+        const selected = smoothed[index] >= .06 && item.kept > 0;
+        if (selected && !active) active = { start: index, end: index, netArea: 0, grossArea: 0 };
+        if (selected) { active.end = index; active.netArea += item.netArea; active.grossArea += item.grossArea; }
+        if ((!selected || index === perColumn.length - 1) && active) { candidates.push(active); active = null; }
+      });
+      candidates.forEach(candidate => {
+        candidate.startTrace = data.grid.traces[candidate.start]; candidate.endTrace = data.grid.traces[candidate.end];
+        candidate.length = Math.hypot(data.survey.traceX[candidate.end] - data.survey.traceX[candidate.start], data.survey.traceY[candidate.end] - data.survey.traceY[candidate.start]);
+      });
+      candidates.sort((a, b) => b.netArea - a.netArea);
+      const kept = perColumn.reduce((sum, item) => sum + item.kept, 0), total = perColumn.reduce((sum, item) => sum + item.total, 0);
+      const netArea = perColumn.reduce((sum, item) => sum + item.netArea, 0), grossArea = perColumn.reduce((sum, item) => sum + item.grossArea, 0);
+      return { kept, total, share: total ? kept / total : 0, netArea, grossArea, perColumn, candidates };
     }
 
     updateConclusion(reading) {
@@ -370,17 +467,21 @@
       const thickness = data.horizons.timesMs.slice(1).map((line, index) => line[reading.col] - data.horizons.timesMs[index][reading.col]);
       const thickest = thickness.indexOf(Math.max(...thickness));
       const nearestWell = data.wells.reduce((best, well) => Math.abs(well.trace - reading.trace) < Math.abs(best.trace - reading.trace) ? well : best, data.wells[0]);
+      const wellValidation = this.wellTieValidation(nearestWell);
+      const meanThrow = data.stats.faultThrowMs.reduce((sum, value) => sum + value, 0) / data.stats.faultThrowMs.length;
       const copy = {
         regional: [`${reading.zone}为当前定位单元`, `Trace ${reading.trace} · E ${Math.round(data.survey.traceX[reading.col])} m · N ${Math.round(data.survey.traceY[reading.col])} m`],
         strata: [`${intervalNames[thickest]}为当前道最厚层段`, `厚度 ${thickness[thickest].toFixed(1)} ms；白色游标已同步至剖面与周边证据图`],
-        welltie: [`当前道最接近 ${nearestWell.name}`, `井位 Trace ${nearestWell.trace}；游标时间 ${reading.time.toFixed(0)} ms；归一化振幅 ${reading.seismic.toFixed(2)}`],
-        fault: [Math.abs(reading.trace - data.stats.faultTrace) <= 14 ? '当前位置进入 F1 构造转换带' : '当前位置位于 F1 断裂影响带外', `距断层中心 ${Math.abs(reading.trace - data.stats.faultTrace)} 道；风险代理 ${(reading.risk * 100).toFixed(0)}%`],
+        welltie: [`${nearestWell.name} 平均标定残差 ${wellValidation.meanAbs.toFixed(1)} ms`, `最大残差 ${wellValidation.maxAbs.toFixed(1)} ms · 综合置信度 ${(wellValidation.confidence * 100).toFixed(0)}% · 当前游标 ${reading.time.toFixed(0)} ms`],
+        fault: [Math.abs(reading.trace - data.stats.faultTrace) <= 14 ? '层位错断与风险高值共同支持 F1 解释' : '当前位置缺少进入 F1 核心带的联合证据', `距断层中心 ${Math.abs(reading.trace - data.stats.faultTrace)} 道 · 风险 ${(reading.risk * 100).toFixed(0)}% · 平均视错距 ${meanThrow.toFixed(1)} ms`],
         reservoir: ['', '']
       }[this.mode];
       if (this.mode === 'reservoir') {
         const summary = this.reservoirSummary();
-        copy[0] = `${intervalNames[state.interval]} 在阈值 ${state.threshold.toFixed(2)} 下保留 ${(summary.share * 100).toFixed(1)}%`;
-        copy[1] = `保留 ${summary.kept}/${summary.total} 个层内样本；当前道指示值 ${reading.reservoir.toFixed(2)}，${reading.reservoir >= state.threshold ? '满足' : '未满足'}优选条件`;
+        const baseline = this.reservoirSummary(.85);
+        const best = summary.candidates[0];
+        copy[0] = best ? `C1：Trace ${best.startTrace}—${best.endTrace} 为首选连续候选区` : `${intervalNames[state.interval]} 在当前阈值下未形成连续候选区`;
+        copy[1] = `阈值 ${state.threshold.toFixed(2)} · 保留率 ${(summary.share * 100).toFixed(1)}%（较 0.85 ${summary.share >= baseline.share ? '+' : ''}${((summary.share - baseline.share) * 100).toFixed(1)} pct） · 等效净面积 ${Math.round(summary.netArea).toLocaleString('zh-CN')} m²`;
       }
       conclusion.textContent = copy[0]; evidence.textContent = copy[1];
     }

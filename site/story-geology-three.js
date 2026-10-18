@@ -540,6 +540,41 @@ class ThreeGeologyScene {
     this.reservoirGroup.add(new THREE.Points(geometry, material));
     const shell = new THREE.Mesh(new THREE.BoxGeometry(4.55, 2.6, 2.4), new THREE.MeshBasicMaterial({ color: 0x58e3ea, wireframe: true, transparent: true, opacity: .24, toneMapped: false }));
     this.reservoirGroup.add(shell);
+    const columnShares = Array.from({ length: columns }, (_, column) => {
+      let kept = 0, total = 0;
+      DATA.grid.timesMs.forEach((time, row) => {
+        if (time < top[column] || time > base[column]) return;
+        total += 1;
+        if (DATA.grid.reservoir[row][column] / 255 >= this.reservoirThreshold) kept += 1;
+      });
+      return total ? kept / total : 0;
+    });
+    const candidates = [];
+    let active = null;
+    columnShares.forEach((share, column) => {
+      const smooth = columnShares.slice(Math.max(0, column - 2), Math.min(columns, column + 3)).reduce((sum, value) => sum + value, 0) / Math.min(5, column + 3, columns - column + 2);
+      const selected = smooth >= .06 && share > 0;
+      if (selected && !active) active = { start: column, end: column, score: 0 };
+      if (selected) { active.end = column; active.score += share; }
+      if ((!selected || column === columns - 1) && active) { candidates.push(active); active = null; }
+    });
+    candidates.sort((a, b) => b.score - a.score);
+    const best = candidates[0];
+    if (best) {
+      const x1 = best.start / (columns - 1) * 4.5 - 2.25, x2 = best.end / (columns - 1) * 4.5 - 2.25;
+      const timeMin = Math.min(...top.slice(best.start, best.end + 1));
+      const timeMax = Math.max(...base.slice(best.start, best.end + 1));
+      const toY = time => 1.26 - (time - DATA.grid.timesMs[0]) / (DATA.grid.timesMs.at(-1) - DATA.grid.timesMs[0]) * 2.55;
+      const yTop = toY(timeMin), yBottom = toY(timeMax);
+      const volumeGeometry = new THREE.BoxGeometry(Math.max(.08, x2 - x1), Math.max(.08, yTop - yBottom), 2.42);
+      const volume = new THREE.Mesh(volumeGeometry, new THREE.MeshBasicMaterial({ color: 0xe1bd5c, transparent: true, opacity: .07, depthWrite: false, toneMapped: false }));
+      volume.position.set((x1 + x2) / 2, (yTop + yBottom) / 2, 0);
+      this.reservoirGroup.add(volume);
+      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(volumeGeometry), new THREE.LineBasicMaterial({ color: 0xe1bd5c, transparent: true, opacity: .78 }));
+      edges.position.copy(volume.position); this.reservoirGroup.add(edges);
+      const candidateLabel = labelSprite(`C1 · Trace ${DATA.grid.traces[best.start]}—${DATA.grid.traces[best.end]}`, '#e1bd5c');
+      candidateLabel.position.set((x1 + x2) / 2, yTop + .2, 1.28); candidateLabel.scale.set(1.25, .3, 1); this.reservoirGroup.add(candidateLabel);
+    }
     const label = labelSprite(`H${this.reservoirInterval + 1}—H${this.reservoirInterval + 2} · ≥${this.reservoirThreshold.toFixed(2)}`, '#c7aa68');
     label.position.set(-1.75, 1.56, -1.05);
     this.reservoirGroup.add(label);
